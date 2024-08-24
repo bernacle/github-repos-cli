@@ -22,7 +22,6 @@ pub fn fetch_repos(user: &str) -> Result<Vec<Repo>, Box<dyn std::error::Error>> 
         .build()?;
     let response = client.get(&url).send()?;
 
-    // Read the response body into a string
     let status = response.status();
     let body = response.text()?;
 
