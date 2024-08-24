@@ -1,4 +1,6 @@
-use reqwest::blocking::get;
+use reqwest::header::{HeaderMap, USER_AGENT};
+use reqwest::StatusCode;
+
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -12,6 +14,26 @@ pub fn fetch_repos(user: &str) -> Result<Vec<Repo>, Box<dyn std::error::Error>> 
         "https://api.github.com/users/{}/repos?sort=updated&per_page=10",
         user
     );
-    let repos: Vec<Repo> = get(&url)?.json()?;
+    let mut headers = HeaderMap::new();
+    headers.insert(USER_AGENT, "my-rust-app/1.0".parse()?);
+
+    let client = reqwest::blocking::Client::builder()
+        .default_headers(headers)
+        .build()?;
+    let response = client.get(&url).send()?;
+
+    // Read the response body into a string
+    let status = response.status();
+    let body = response.text()?;
+
+    if status != StatusCode::OK {
+        return Err(format!(
+            "Error: Received status code {}. Response body: {}. Request URL: {}",
+            status, body, url
+        )
+        .into());
+    }
+
+    let repos: Vec<Repo> = serde_json::from_str(&body)?;
     Ok(repos)
 }
